@@ -1,223 +1,307 @@
-import React, { useState } from 'react';
-import BedDetail from './components/BedDetail';
-import CreateBedForm from './components/CreateBedForm';
-import CreateTaskForm from './components/CreateTaskForm';
-import Filter from './components/Filter';
-import { Bed, Person, Task, Project } from './types';
-import CreateProjectForm from './components/CreateProjectForm';
-import { Grid, Typography, Paper, Box, Button, Drawer, IconButton, Select, MenuItem, FormControl, InputLabel, Divider } from '@mui/material';
-import MenuIcon from '@mui/icons-material/Menu';
-import { calculateNextDueDate } from './utils/taskUtils';
+import React, { useState, useEffect } from "react";
+import BedDetail from "./components/BedDetail";
+import CreateBedForm from "./components/CreateBedForm";
+import CreateTaskForm from "./components/CreateTaskForm";
+import Filter from "./components/Filter";
+import { Bed, Person, Task, Project } from "./types";
+import CreateProjectForm from "./components/CreateProjectForm";
+import RegisterForm from "./components/RegisterForm";
+import {
+  Grid,
+  Typography,
+  Paper,
+  Box,
+  Button,
+  Drawer,
+  IconButton,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Divider,
+} from "@mui/material";
+import MenuIcon from "@mui/icons-material/Menu";
+import { calculateNextDueDate } from "./utils/taskUtils";
+
+import axios from "axios";
+
+const API_BASE_URL = "http://localhost:3001";
 
 const initialPeople: Person[] = [
-  { id: 1, name: 'Alice' },
-  { id: 2, name: 'Bob' },
-];
-
-const initialProjects: Project[] = [
-  {
-    id: 1,
-    name: 'Home Garden',
-    beds: [
-      {
-        id: 1,
-        name: 'Strawberry Patch',
-        assignedTo: initialPeople[0],
-        tasks: [
-          { id: 1, name: 'Watering', frequency: 'daily' },
-          { id: 2, name: 'Weeding', frequency: 'weekly' },
-        ],
-        completedTasks: [],
-      },
-      {
-        id: 2,
-        name: 'Herb Garden',
-        assignedTo: initialPeople[1],
-        tasks: [
-          { id: 1, name: 'Watering', frequency: 'daily' },
-          { id: 3, name: 'Pest Control', dueDate: new Date(new Date().setDate(new Date().getDate() + 7)) },
-        ],
-        completedTasks: [],
-      },
-    ],
-    tasks: [
-      { id: 1, name: 'Watering', frequency: 'daily' },
-      { id: 2, name: 'Weeding', frequency: 'weekly' },
-      { id: 3, name: 'Pest Control', dueDate: new Date(new Date().setDate(new Date().getDate() + 7)) },
-      { id: 4, name: 'Harvesting', dueDate: new Date(new Date().setDate(new Date().getDate() + 14)) },
-    ],
-  },
-  {
-    id: 2,
-    name: 'Community Garden',
-    beds: [
-      {
-        id: 4,
-        name: 'Tomato Bed',
-        assignedTo: initialPeople[0],
-        tasks: [
-          { id: 5, name: 'Pruning', frequency: 'weekly' },
-        ],
-        completedTasks: [],
-      },
-    ],
-    tasks: [
-      { id: 5, name: 'Pruning', frequency: 'weekly' },
-      { id: 6, name: 'Fertilizing', dueDate: new Date(new Date().setDate(new Date().getDate() + 3)) },
-    ],
-  },
+  { id: 1, name: "Alice" },
+  { id: 2, name: "Bob" },
 ];
 
 function App() {
-  const [projects, setProjects] = useState<Project[]>(initialProjects);
-  const [selectedProjectId, setSelectedProjectId] = useState<number>(initialProjects[0].id);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [selectedProjectId, setSelectedProjectId] = useState<number | null>(
+    null,
+  );
   const [people] = useState<Person[]>(initialPeople);
-  const [nameFilter, setNameFilter] = useState('');
-  const [assignedToFilter, setAssignedToFilter] = useState<number | '' > ('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [showRegisterForm, setShowRegisterForm] = useState(false);
+
+  // Added state and handlers
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [nameFilter, setNameFilter] = useState("");
+  const [assignedToFilter, setAssignedToFilter] = useState<number | "">("");
 
-  const currentProject = projects.find(p => p.id === selectedProjectId);
+  // Derive currentProject from selectedProjectId and projects
+  const currentProject =
+    projects.find((p) => p.id === selectedProjectId) || null;
 
-  if (!currentProject) {
-    return <Typography>Project not found.</Typography>;
-  }
-
-  const handleTaskDone = (bed: Bed, task: Task) => {
-    setProjects(prevProjects =>
-      prevProjects.map(project => {
-        if (project.id === selectedProjectId) {
-          const updatedBeds = project.beds.map(b => {
-            if (b.id === bed.id) {
-              const newCompletedTasks = [...b.completedTasks, { task, completedAt: new Date() }];
-              let newAssignedTasks = b.tasks.filter(t => t.id !== task.id);
-
-              if (task.frequency) {
-                const nextDueDate = calculateNextDueDate(task, newCompletedTasks);
-                if (nextDueDate) {
-                  newAssignedTasks.push({ ...task, dueDate: nextDueDate });
-                }
-              }
-
-              return {
-                ...b,
-                tasks: newAssignedTasks,
-                completedTasks: newCompletedTasks,
-              };
-            }
-            return b;
-          });
-          return { ...project, beds: updatedBeds };
-        }
-        return project;
-      })
-    );
+  // Handler to create a new project (matches CreateProjectForm signature)
+  const handleCreateProject = (name: string) => {
+    const create = async () => {
+      try {
+        const response = await axios.post<Project>(`${API_BASE_URL}/projects`, {
+          name,
+          beds: [],
+          tasks: [],
+        });
+        setProjects((prev) => [...prev, response.data]);
+        setSelectedProjectId(response.data.id);
+      } catch (err) {
+        setError("Failed to create project.");
+        console.error(err);
+      }
+    };
+    create();
   };
 
+  // Handler to create a new bed (matches CreateBedForm signature)
   const handleCreateBed = (name: string, assignedTo?: Person) => {
-    setProjects(prevProjects =>
-      prevProjects.map(project => {
-        if (project.id === selectedProjectId) {
-          const newBed: Bed = {
-            id: project.beds.length > 0 ? Math.max(...project.beds.map(b => b.id)) + 1 : 1,
+    if (!currentProject) return;
+    const create = async () => {
+      try {
+        const response = await axios.post<Bed>(
+          `${API_BASE_URL}/projects/${currentProject.id}/beds`,
+          {
             name,
             assignedTo,
-            tasks: currentProject.tasks, // Assign all available tasks from the current project
+            tasks: [],
             completedTasks: [],
-          };
-          return { ...project, beds: [...project.beds, newBed] };
-        }
-        return project;
-      })
-    );
+          },
+        );
+        setProjects((prev) =>
+          prev.map((project) =>
+            project.id === currentProject.id
+              ? { ...project, beds: [...project.beds, response.data] }
+              : project,
+          ),
+        );
+      } catch (err) {
+        setError("Failed to create bed.");
+        console.error(err);
+      }
+    };
+    create();
   };
 
-  const handleCreateTask = (name: string, dueDate?: Date, frequency?: string) => {
-    setProjects(prevProjects =>
-      prevProjects.map(project => {
-        if (project.id === selectedProjectId) {
-          const newTaskId = project.tasks.length > 0 ? Math.max(...project.tasks.map(t => t.id)) + 1 : 1;
-          const newTask: Task = {
-            id: newTaskId,
+  // Handler to create a new task (matches CreateTaskForm signature)
+  const handleCreateTask = (
+    name: string,
+    dueDate?: Date,
+    frequency?: string,
+  ) => {
+    if (!currentProject) return;
+    const create = async () => {
+      try {
+        const response = await axios.post<Task>(
+          `${API_BASE_URL}/projects/${currentProject.id}/tasks`,
+          {
             name,
             dueDate,
             frequency,
-          };
-          return { ...project, tasks: [...project.tasks, newTask] };
-        }
-        return project;
-      })
-    );
+          },
+        );
+        setProjects((prev) =>
+          prev.map((project) =>
+            project.id === currentProject.id
+              ? { ...project, tasks: [...project.tasks, response.data] }
+              : project,
+          ),
+        );
+      } catch (err) {
+        setError("Failed to create task.");
+        console.error(err);
+      }
+    };
+    create();
   };
 
-  const handleCreateProject = (name: string) => {
-    setProjects(prevProjects => {
-      const newProjectId = prevProjects.length > 0 ? Math.max(...prevProjects.map(p => p.id)) + 1 : 1;
-      const newProject: Project = {
-        id: newProjectId,
-        name,
-        beds: [],
-        tasks: [],
-      };
-      return [...prevProjects, newProject];
-    });
+  // Handler for marking a task as done (signature matches BedDetail)
+  const handleTaskDone = (bed: Bed, task: Task) => {
+    if (!currentProject) return;
+    (async () => {
+      try {
+        await axios.patch(
+          `${API_BASE_URL}/projects/${currentProject.id}/beds/${bed.id}/tasks/${task.id}/done`,
+        );
+        setProjects((prev) =>
+          prev.map((project) =>
+            project.id === currentProject.id
+              ? {
+                  ...project,
+                  beds: project.beds.map((b) =>
+                    b.id === bed.id
+                      ? {
+                          ...b,
+                          tasks: b.tasks.map((t) =>
+                            t.id === task.id ? { ...t, done: true } : t,
+                          ),
+                        }
+                      : b,
+                  ),
+                }
+              : project,
+          ),
+        );
+      } catch (err) {
+        setError("Failed to mark task as done.");
+        console.error(err);
+      }
+    })();
   };
 
+  // Handler for assigning a task to a bed (signature matches BedDetail)
   const handleAssignTask = (bedId: number, task: Task) => {
-    setProjects(prevProjects =>
-      prevProjects.map(project => {
-        if (project.id === selectedProjectId) {
-          const updatedBeds = project.beds.map(b =>
-            b.id === bedId ? { ...b, tasks: [...b.tasks, task] } : b
-          );
-          return { ...project, beds: updatedBeds };
-        }
-        return project;
-      })
-    );
+    if (!currentProject) return;
+    (async () => {
+      try {
+        await axios.patch(
+          `${API_BASE_URL}/projects/${currentProject.id}/beds/${bedId}/tasks/${task.id}/assign`,
+        );
+        // For simplicity, just refetch projects or update state as needed
+        // Here, we will just refetch all projects for now
+        const response = await axios.get<Project[]>(`${API_BASE_URL}/projects`);
+        setProjects(response.data);
+      } catch (err) {
+        setError("Failed to assign task.");
+        console.error(err);
+      }
+    })();
   };
 
-  const filteredBeds = currentProject.beds.filter(bed => {
+  useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        const response = await axios.get<Project[]>(`${API_BASE_URL}/projects`);
+        setProjects(response.data);
+        if (response.data.length > 0) {
+          setSelectedProjectId(response.data[0].id);
+        }
+      } catch (err) {
+        setError("Failed to fetch projects.");
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProjects();
+  }, []);
+
+  if (!currentProject) {
+    return (
+      <Box
+        sx={{
+          minHeight: "100vh",
+          backgroundImage:
+            "url(https://source.unsplash.com/random/1920x1080/?garden,nature)",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          p: 3,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <Typography
+          variant="h4"
+          component="h1"
+          gutterBottom
+          sx={{ color: "primary.dark", textAlign: "center" }}
+        >
+          No projects found. Please create a new project to get started.
+        </Typography>
+        <Paper sx={{ p: 3, mt: 3, maxWidth: 400, width: "100%" }}>
+          <CreateProjectForm onCreateProject={handleCreateProject} />
+        </Paper>
+        <Button
+          variant="contained"
+          onClick={() => setShowRegisterForm(true)}
+          sx={{ mt: 2 }}
+        >
+          Register New User
+        </Button>
+      </Box>
+    );
+  }
+
+  const filteredBeds = currentProject.beds.filter((bed) => {
     const nameMatch = bed.name.toLowerCase().includes(nameFilter.toLowerCase());
-    const assignedToMatch = assignedToFilter === '' || bed.assignedTo?.id === assignedToFilter;
+    const assignedToMatch =
+      assignedToFilter === "" || bed.assignedTo?.id === assignedToFilter;
     return nameMatch && assignedToMatch;
   });
 
   return (
     <Box
       sx={{
-        minHeight: '100vh',
-        backgroundImage: 'url(https://source.unsplash.com/random/1920x1080/?garden,nature)',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
+        minHeight: "100vh",
+        backgroundImage:
+          "url(https://source.unsplash.com/random/1920x1080/?garden,nature)",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
         p: 3,
       }}
     >
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
+      <Box sx={{ display: "flex", alignItems: "center", mb: 4 }}>
         <IconButton
           color="inherit"
           aria-label="open drawer"
           onClick={() => setSidebarOpen(true)}
           edge="start"
-          sx={{ mr: 2, color: 'primary.dark' }}
+          sx={{ mr: 2, color: "primary.dark" }}
         >
           <MenuIcon />
         </IconButton>
-        <Typography variant="h3" component="h1" gutterBottom sx={{ color: 'primary.dark' }}>
+        <Typography
+          variant="h3"
+          component="h1"
+          gutterBottom
+          sx={{ color: "primary.dark" }}
+        >
           Garden Tracker
         </Typography>
+        <Button
+          variant="contained"
+          onClick={() => setShowRegisterForm(true)}
+          sx={{ ml: "auto" }}
+        >
+          Register
+        </Button>
       </Box>
 
-      <Drawer anchor="left" open={sidebarOpen} onClose={() => setSidebarOpen(false)}>
+      <Drawer
+        anchor="left"
+        open={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+      >
         <Box sx={{ width: 300, p: 3 }}>
-          <Typography variant="h6" gutterBottom>Projects</Typography>
+          <Typography variant="h6" gutterBottom>
+            Projects
+          </Typography>
           <FormControl fullWidth margin="normal">
             <InputLabel>Select Project</InputLabel>
             <Select
               value={selectedProjectId}
-              onChange={e => setSelectedProjectId(e.target.value as number)}
+              onChange={(e) => setSelectedProjectId(e.target.value as number)}
               label="Select Project"
             >
-              {projects.map(project => (
+              {projects.map((project) => (
                 <MenuItem key={project.id} value={project.id}>
                   {project.name}
                 </MenuItem>
@@ -225,7 +309,9 @@ function App() {
             </Select>
           </FormControl>
           <Divider sx={{ my: 2 }} />
-          <Typography variant="h6" gutterBottom>Create New</Typography>
+          <Typography variant="h6" gutterBottom>
+            Create New
+          </Typography>
           <Paper sx={{ p: 3, mt: 2 }}>
             <CreateBedForm people={people} onCreateBed={handleCreateBed} />
           </Paper>
@@ -251,11 +337,15 @@ function App() {
             />
           </Paper>
         </Grid>
-        <Grid item xs={12} sx={{
-          columnCount: { xs: 1, sm: 2, md: 3 }, // Responsive column count
-          columnGap: 4, // Gap between columns
-        }}>
-          {filteredBeds.map(bed => (
+        <Grid
+          item
+          xs={12}
+          sx={{
+            columnCount: { xs: 1, sm: 2, md: 3 }, // Responsive column count
+            columnGap: 4, // Gap between columns
+          }}
+        >
+          {filteredBeds.map((bed) => (
             <BedDetail
               key={bed.id}
               bed={bed}

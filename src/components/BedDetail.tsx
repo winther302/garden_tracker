@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Bed, Task, CompletedTask } from '../types';
+import { Bed, Task } from '../types';
 import { Button, Card, CardContent, Typography, List, ListItem, ListItemText, Divider, Accordion, AccordionSummary, AccordionDetails, Snackbar, Autocomplete, TextField, Theme } from '@mui/material';
 import { SxProps } from '@mui/system';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
@@ -22,7 +22,10 @@ interface BedDetailProps {
 }
 
 const BedDetail: React.FC<BedDetailProps> = ({ bed, onTaskDone, onAssignTask, allTasks, sx }) => {
-  const sortedCompletedTasks = [...bed.completedTasks].sort((a, b) => b.completedAt.getTime() - a.completedAt.getTime());
+  const sortedCompletedTasks = [...bed.completedTasks].map(task => ({
+    ...task,
+    completedAt: new Date(task.completedAt)
+  })).sort((a, b) => b.completedAt.getTime() - a.completedAt.getTime());
   const [openSnackbar, setOpenSnackbar] = useState(false);
   const [taskToAssign, setTaskToAssign] = useState<Task | null>(null);
 
@@ -49,15 +52,22 @@ const BedDetail: React.FC<BedDetailProps> = ({ bed, onTaskDone, onAssignTask, al
     const dateA = calculateNextDueDate(a, bed.completedTasks);
     const dateB = calculateNextDueDate(b, bed.completedTasks);
 
-    if (dateA && dateB) {
-      return dateA.getTime() - dateB.getTime();
-    } else if (dateA) {
-      return -1; // a has a date, b doesn't, so a comes first
-    } else if (dateB) {
-      return 1; // b has a date, a doesn't, so b comes first
-    } else {
-      return 0; // neither has a date, maintain original order
+    if (dateA === null && dateB === null) return 0;
+    if (dateA === null) return 1; // null dates go to the end
+    if (dateB === null) return -1; // null dates go to the end
+
+    // If dateA is null, it should come after dateB (unless dateB is also null)
+    if (dateA === null) {
+      return dateB === null ? 0 : 1; // If dateB is null, they are equal. Otherwise, dateA comes after dateB.
     }
+    // If dateB is null (and dateA is not null, due to previous check), dateB should come after dateA
+    if (dateB === null) {
+      return -1; // dateA comes before dateB
+    }
+
+    // Both are valid Date objects, compare their times
+    console.log('dateA:', dateA, 'dateB:', dateB);
+    return dateA.getTime() - dateB.getTime();
   });
 
   return (
@@ -76,7 +86,7 @@ const BedDetail: React.FC<BedDetailProps> = ({ bed, onTaskDone, onAssignTask, al
             <Typography variant="h6">Completed Tasks</Typography>
           </AccordionSummary>
           <AccordionDetails>
-            <List dense>
+            <List dense sx={{ maxHeight: 200, overflowY: 'auto' }}>
               {sortedCompletedTasks.map((completedTask, index) => (
                 <ListItem key={index}>
                   <ListItemText

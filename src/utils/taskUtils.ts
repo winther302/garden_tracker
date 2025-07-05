@@ -2,15 +2,15 @@ import { Task, CompletedTask } from '../types';
 
 export const calculateNextDueDate = (task: Task, completedTasks: CompletedTask[]): Date | null => {
   if (task.dueDate) {
-    return task.dueDate;
+    return new Date(task.dueDate);
   }
 
   const lastCompletion = completedTasks
     .filter(ct => ct.task.id === task.id)
-    .sort((a, b) => b.completedAt.getTime() - a.completedAt.getTime())[0];
+    .sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime())[0];
 
-  let baseDate = lastCompletion ? lastCompletion.completedAt : new Date();
-  let nextDate = new Date(baseDate);
+  const baseDate = lastCompletion ? new Date(lastCompletion.completedAt) : new Date();
+  const nextDate = new Date(baseDate);
 
   if (task.frequency) {
     switch (task.frequency) {

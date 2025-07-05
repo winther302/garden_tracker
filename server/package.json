@@ -3,9 +3,14 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && tsc --project tsconfig.seed.json",
+    "build:seed": "tsc --project tsconfig.seed.json",
     "start": "node dist/index.js",
+    "prisma:seed": "ts-node prisma/seed.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "prisma": {
+    "seed": "ts-node prisma/seed.ts"
   },
   "keywords": [],
   "author": "",
@@ -13,8 +18,11 @@
   "description": "",
   "dependencies": {
     "@prisma/client": "^6.11.1",
+    "@types/cors": "^2.8.19",
     "@types/express": "^5.0.3",
     "@types/node": "^24.0.10",
+    "bcryptjs": "^3.0.2",
+    "cors": "^2.8.5",
     "express": "^5.1.0",
     "mysql2": "^3.14.1",
     "prisma": "^6.11.1",

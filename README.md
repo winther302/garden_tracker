@@ -14,11 +14,7 @@ Ensure you have the following installed on your machine:
 *   [npm](https://docs.npmjs.com/cli/v8/commands/npm) (comes with Node.js)
 *   [Docker Desktop](https://www.docker.com/products/docker-desktop) (includes Docker Engine and Docker Compose)
 
-### 1. Backend Setup
-
-The backend is a Node.js application that uses Prisma to interact with a MySQL database. The database will be run using Docker Compose.
-
-#### 1.1. Database Setup (Docker Compose)
+### 1. Database Setup (Docker Compose)
 
 1.  Open your terminal in the **root directory** of the project (`/Users/rasmuswinther/Documents/garden_tracker/`).
 2.  Start the MySQL database container:
@@ -31,7 +27,11 @@ The backend is a Node.js application that uses Prisma to interact with a MySQL d
     ```
     You should see `(healthy)` in the `STATUS` column.
 
-#### 1.2. Prisma Migrations
+### 2. Backend Setup
+
+The backend is a Node.js application that uses Prisma to interact with the MySQL database.
+
+#### 2.1. Prisma Migrations
 
 1.  Navigate into the `server` directory:
     ```bash
@@ -43,7 +43,20 @@ The backend is a Node.js application that uses Prisma to interact with a MySQL d
     ```
     *Note: If you encounter permission errors related to the shadow database, temporarily change the `DATABASE_URL` in `server/.env` to use `root:root_password` for the `user:password` part, run the migration, and then change it back to `user:password`.*
 
-#### 1.3. Start the Backend Server
+#### 2.2. Seed the Database (Optional)
+
+To populate your database with some initial test data, run the seeding script:
+
+1.  Navigate into the `server` directory:
+    ```bash
+    cd server
+    ```
+2.  Run the seed command:
+    ```bash
+    npm run prisma:seed
+    ```
+
+#### 2.3. Start the Backend Server
 
 1.  While still in the `server` directory, start the backend server:
     ```bash
@@ -51,7 +64,7 @@ The backend is a Node.js application that uses Prisma to interact with a MySQL d
     ```
     The server should start on `http://localhost:3001`.
 
-### 2. Frontend Setup
+### 3. Frontend Setup
 
 The frontend is a React application.
 

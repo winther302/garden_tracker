@@ -17,16 +17,5 @@ services:
       timeout: 5s
       retries: 5
 
-  backend:
-    build: ./server
-    container_name: garden_tracker_backend
-    ports:
-      - "3001:3001"
-    environment:
-      DATABASE_URL: mysql://user:password@db:3306/garden_tracker_db
-    depends_on:
-      db:
-        condition: service_healthy
-
 volumes:
   db_data:

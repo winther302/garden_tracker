@@ -8,8 +8,9 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql"
-  url      = env("DATABASE_URL")
+  provider        = "mysql"
+  url             = env("DATABASE_URL")
+  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
 }
 
 model Project {
@@ -54,4 +55,10 @@ model CompletedTask {
   bedId       Int
   bed         Bed      @relation(fields: [bedId], references: [id])
   completedAt DateTime @map("completed_at")
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  email        String   @unique
+  passwordHash String
 }
