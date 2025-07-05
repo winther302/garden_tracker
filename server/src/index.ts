@@ -2,6 +2,29 @@ import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import { PrismaClient } from '../generated/prisma';
 import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import dotenv from 'dotenv';
+
+dotenv.config();
+
+const JWT_SECRET = process.env.JWT_SECRET || 'supersecretjwtkey';
+
+interface AuthRequest extends Request {
+  userId?: number;
+}
+
+const authenticateToken = (req: AuthRequest, res: Response, next: NextFunction) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (token == null) return res.sendStatus(401); // No token
+
+  jwt.verify(token, JWT_SECRET, (err: any, user: any) => {
+    if (err) return res.sendStatus(403); // Invalid token
+    req.userId = user.userId;
+    next();
+  });
+};
 
 const prisma = new PrismaClient();
 const app = express();
@@ -42,7 +65,7 @@ app.post('/register', async (req, res) => {
 });
 
 // Get all projects
-app.get('/projects', async (req, res) => {
+app.get('/projects', authenticateToken, async (req: AuthRequest, res) => {
   const projects = await prisma.project.findMany({
     include: {
       beds: {
@@ -63,7 +86,7 @@ app.get('/projects', async (req, res) => {
 });
 
 // Get a single project
-app.get('/projects/:id', async (req, res) => {
+app.get('/projects/:id', authenticateToken, async (req: AuthRequest, res) => {
   const { id } = req.params;
   const project = await prisma.project.findUnique({
     where: { id: Number(id) },
@@ -86,14 +109,14 @@ app.get('/projects/:id', async (req, res) => {
 });
 
 // Create a new project
-app.post('/projects', async (req, res) => {
+app.post('/projects', authenticateToken, async (req: AuthRequest, res) => {
   const { name } = req.body;
   const project = await prisma.project.create({ data: { name } });
   res.json(project);
 });
 
 // Create a new bed
-app.post('/projects/:projectId/beds', async (req, res) => {
+app.post('/projects/:projectId/beds', authenticateToken, async (req: AuthRequest, res) => {
   const { projectId } = req.params;
   const { name, assignedToId, tasks } = req.body;
   const bed = await prisma.bed.create({
@@ -108,7 +131,7 @@ app.post('/projects/:projectId/beds', async (req, res) => {
 });
 
 // Create a new task
-app.post('/projects/:projectId/tasks', async (req, res) => {
+app.post('/projects/:projectId/tasks', authenticateToken, async (req: AuthRequest, res) => {
   const { projectId } = req.params;
   const { name, dueDate, frequency } = req.body;
   const task = await prisma.task.create({
@@ -123,7 +146,7 @@ app.post('/projects/:projectId/tasks', async (req, res) => {
 });
 
 // Mark task as done
-app.post('/beds/:bedId/tasks/:taskId/done', async (req, res) => {
+app.post('/beds/:bedId/tasks/:taskId/done', authenticateToken, async (req: AuthRequest, res) => {
   const { bedId, taskId } = req.params;
   const completedTask = await prisma.completedTask.create({
     data: {
@@ -136,7 +159,7 @@ app.post('/beds/:bedId/tasks/:taskId/done', async (req, res) => {
 });
 
 // Assign an existing task to a bed
-app.post('/beds/:bedId/tasks', async (req, res) => {
+app.post('/beds/:bedId/tasks', authenticateToken, async (req: AuthRequest, res) => {
   const { bedId } = req.params;
   const { taskId } = req.body;
   try {
@@ -150,6 +173,35 @@ app.post('/beds/:bedId/tasks', async (req, res) => {
   } catch (error) {
     console.error('Error assigning task:', error);
     res.status(500).json({ error: 'Failed to assign task' });
+  }
+});
+
+// User login
+app.post('/login', async (req, res) => {
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    return res.status(400).json({ error: 'Email and password are required' });
+  }
+
+  try {
+    const user = await prisma.user.findUnique({ where: { email } });
+
+    if (!user) {
+      return res.status(400).json({ error: 'Invalid credentials' });
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
+
+    if (!isPasswordValid) {
+      return res.status(400).json({ error: 'Invalid credentials' });
+    }
+
+    const token = jwt.sign({ userId: user.id, email: user.email }, JWT_SECRET, { expiresIn: '1h' });
+    res.status(200).json({ message: 'Login successful', token });
+  } catch (error) {
+    console.error('Error logging in user:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 

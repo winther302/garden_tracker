@@ -137,7 +137,7 @@ const BedDetail: React.FC<BedDetailProps> = ({ bed, onTaskDone, onAssignTask, al
           </AccordionSummary>
           <AccordionDetails>
             <Autocomplete
-              options={allTasks.filter(task => !bed.tasks.some(t => t.id === task.id))}
+              options={allTasks}
               getOptionLabel={(option) => option.name}
               value={taskToAssign}
               onChange={(event, newValue) => {

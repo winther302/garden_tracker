@@ -16,6 +16,22 @@ const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const prisma_1 = require("../generated/prisma");
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
+const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
+const dotenv_1 = __importDefault(require("dotenv"));
+dotenv_1.default.config();
+const JWT_SECRET = process.env.JWT_SECRET || 'supersecretjwtkey';
+const authenticateToken = (req, res, next) => {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+    if (token == null)
+        return res.sendStatus(401); // No token
+    jsonwebtoken_1.default.verify(token, JWT_SECRET, (err, user) => {
+        if (err)
+            return res.sendStatus(403); // Invalid token
+        req.userId = user.userId;
+        next();
+    });
+};
 const prisma = new prisma_1.PrismaClient();
 const app = (0, express_1.default)();
 const PORT = process.env.PORT || 3001;
@@ -50,7 +66,7 @@ app.post('/register', (req, res) => __awaiter(void 0, void 0, void 0, function* 
     }
 }));
 // Get all projects
-app.get('/projects', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+app.get('/projects', authenticateToken, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const projects = yield prisma.project.findMany({
         include: {
             beds: {
@@ -70,7 +86,7 @@ app.get('/projects', (req, res) => __awaiter(void 0, void 0, void 0, function* (
     res.json(projects);
 }));
 // Get a single project
-app.get('/projects/:id', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+app.get('/projects/:id', authenticateToken, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { id } = req.params;
     const project = yield prisma.project.findUnique({
         where: { id: Number(id) },
@@ -92,13 +108,13 @@ app.get('/projects/:id', (req, res) => __awaiter(void 0, void 0, void 0, functio
     res.json(project);
 }));
 // Create a new project
-app.post('/projects', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+app.post('/projects', authenticateToken, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { name } = req.body;
     const project = yield prisma.project.create({ data: { name } });
     res.json(project);
 }));
 // Create a new bed
-app.post('/projects/:projectId/beds', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+app.post('/projects/:projectId/beds', authenticateToken, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { projectId } = req.params;
     const { name, assignedToId, tasks } = req.body;
     const bed = yield prisma.bed.create({
@@ -112,7 +128,7 @@ app.post('/projects/:projectId/beds', (req, res) => __awaiter(void 0, void 0, vo
     res.json(bed);
 }));
 // Create a new task
-app.post('/projects/:projectId/tasks', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+app.post('/projects/:projectId/tasks', authenticateToken, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { projectId } = req.params;
     const { name, dueDate, frequency } = req.body;
     const task = yield prisma.task.create({
@@ -126,7 +142,7 @@ app.post('/projects/:projectId/tasks', (req, res) => __awaiter(void 0, void 0, v
     res.json(task);
 }));
 // Mark task as done
-app.post('/beds/:bedId/tasks/:taskId/done', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+app.post('/beds/:bedId/tasks/:taskId/done', authenticateToken, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { bedId, taskId } = req.params;
     const completedTask = yield prisma.completedTask.create({
         data: {
@@ -138,7 +154,7 @@ app.post('/beds/:bedId/tasks/:taskId/done', (req, res) => __awaiter(void 0, void
     res.json(completedTask);
 }));
 // Assign an existing task to a bed
-app.post('/beds/:bedId/tasks', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+app.post('/beds/:bedId/tasks', authenticateToken, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { bedId } = req.params;
     const { taskId } = req.body;
     try {
@@ -153,6 +169,29 @@ app.post('/beds/:bedId/tasks', (req, res) => __awaiter(void 0, void 0, void 0, f
     catch (error) {
         console.error('Error assigning task:', error);
         res.status(500).json({ error: 'Failed to assign task' });
+    }
+}));
+// User login
+app.post('/login', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { email, password } = req.body;
+    if (!email || !password) {
+        return res.status(400).json({ error: 'Email and password are required' });
+    }
+    try {
+        const user = yield prisma.user.findUnique({ where: { email } });
+        if (!user) {
+            return res.status(400).json({ error: 'Invalid credentials' });
+        }
+        const isPasswordValid = yield bcryptjs_1.default.compare(password, user.passwordHash);
+        if (!isPasswordValid) {
+            return res.status(400).json({ error: 'Invalid credentials' });
+        }
+        const token = jsonwebtoken_1.default.sign({ userId: user.id, email: user.email }, JWT_SECRET, { expiresIn: '1h' });
+        res.status(200).json({ message: 'Login successful', token });
+    }
+    catch (error) {
+        console.error('Error logging in user:', error);
+        res.status(500).json({ error: 'Internal server error' });
     }
 }));
 app.listen(PORT, () => {

@@ -6,6 +6,7 @@ import Filter from "./components/Filter";
 import { Bed, Person, Task, Project } from "./types";
 import CreateProjectForm from "./components/CreateProjectForm";
 import RegisterForm from "./components/RegisterForm";
+import LoginForm from "./components/LoginForm";
 import {
   Grid,
   Typography,
@@ -21,9 +22,22 @@ import {
   Divider,
 } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
-import { calculateNextDueDate } from "./utils/taskUtils";
+
 
 import axios from "axios";
+
+axios.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
 
 const API_BASE_URL = "http://localhost:3001";
 
@@ -38,9 +52,10 @@ function App() {
     null,
   );
   const [people] = useState<Person[]>(initialPeople);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  
   const [showRegisterForm, setShowRegisterForm] = useState(false);
+  const [showLoginForm, setShowLoginForm] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   // Added state and handlers
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -63,7 +78,6 @@ function App() {
         setProjects((prev) => [...prev, response.data]);
         setSelectedProjectId(response.data.id);
       } catch (err) {
-        setError("Failed to create project.");
         console.error(err);
       }
     };
@@ -92,7 +106,6 @@ function App() {
           ),
         );
       } catch (err) {
-        setError("Failed to create bed.");
         console.error(err);
       }
     };
@@ -124,7 +137,6 @@ function App() {
           ),
         );
       } catch (err) {
-        setError("Failed to create task.");
         console.error(err);
       }
     };
@@ -159,7 +171,6 @@ function App() {
           ),
         );
       } catch (err) {
-        setError("Failed to mark task as done.");
         console.error(err);
       }
     })();
@@ -170,37 +181,172 @@ function App() {
     if (!currentProject) return;
     (async () => {
       try {
-        await axios.patch(
-          `${API_BASE_URL}/projects/${currentProject.id}/beds/${bedId}/tasks/${task.id}/assign`,
+        await axios.post(
+          `${API_BASE_URL}/beds/${bedId}/tasks`,
+          { taskId: task.id },
         );
         // For simplicity, just refetch projects or update state as needed
         // Here, we will just refetch all projects for now
         const response = await axios.get<Project[]>(`${API_BASE_URL}/projects`);
         setProjects(response.data);
       } catch (err) {
-        setError("Failed to assign task.");
         console.error(err);
       }
     })();
   };
 
+  const handleLoginSuccess = () => {
+    setIsLoggedIn(true);
+    setShowLoginForm(false);
+  };
+
   useEffect(() => {
-    const fetchProjects = async () => {
-      try {
-        const response = await axios.get<Project[]>(`${API_BASE_URL}/projects`);
-        setProjects(response.data);
-        if (response.data.length > 0) {
-          setSelectedProjectId(response.data[0].id);
-        }
-      } catch (err) {
-        setError("Failed to fetch projects.");
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchProjects();
+    const token = localStorage.getItem('token');
+    if (token) {
+      setIsLoggedIn(true);
+    }
   }, []);
+
+  useEffect(() => {
+    if (isLoggedIn) {
+      const fetchProjects = async () => {
+        try {
+          const response = await axios.get<Project[]>(`${API_BASE_URL}/projects`);
+          setProjects(response.data);
+          if (response.data.length > 0) {
+            setSelectedProjectId(response.data[0].id);
+          }
+        } catch (err) {
+          console.error(err);
+        }
+      };
+      fetchProjects();
+    }
+  }, [isLoggedIn]);
+
+  if (!isLoggedIn) {
+    return (
+      <Box
+        sx={{
+          minHeight: "100vh",
+          backgroundImage:
+            "url(https://source.unsplash.com/random/1920x1080/?garden,nature)",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          p: 3,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        {showRegisterForm ? (
+          <RegisterForm />
+        ) : showLoginForm ? (
+          <LoginForm onLoginSuccess={handleLoginSuccess} />
+        ) : (
+          <>
+            <Typography
+              variant="h4"
+              component="h1"
+              gutterBottom
+              sx={{ color: "primary.dark", textAlign: "center" }}
+            >
+              Welcome to Garden Tracker!
+            </Typography>
+            <Button
+              variant="contained"
+              onClick={() => setShowRegisterForm(true)}
+              sx={{ mt: 2 }}
+            >
+              Register New User
+            </Button>
+            <Button
+              variant="contained"
+              onClick={() => setShowLoginForm(true)}
+              sx={{ mt: 2, ml: 2 }}
+            >
+              Login
+            </Button>
+          </>
+        )}
+        {(showRegisterForm || showLoginForm) && (
+          <Button
+            variant="text"
+            onClick={() => {
+              setShowRegisterForm(false);
+              setShowLoginForm(false);
+            }}
+            sx={{ mt: 2 }}
+          >
+            Back
+          </Button>
+        )}
+      </Box>
+    );
+  }
+
+  if (!isLoggedIn) {
+    return (
+      <Box
+        sx={{
+          minHeight: "100vh",
+          backgroundImage:
+            "url(https://source.unsplash.com/random/1920x1080/?garden,nature)",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          p: 3,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        {showRegisterForm ? (
+          <RegisterForm />
+        ) : showLoginForm ? (
+          <LoginForm onLoginSuccess={handleLoginSuccess} />
+        ) : (
+          <>
+            <Typography
+              variant="h4"
+              component="h1"
+              gutterBottom
+              sx={{ color: "primary.dark", textAlign: "center" }}
+            >
+              Welcome to Garden Tracker!
+            </Typography>
+            <Button
+              variant="contained"
+              onClick={() => setShowRegisterForm(true)}
+              sx={{ mt: 2 }}
+            >
+              Register New User
+            </Button>
+            <Button
+              variant="contained"
+              onClick={() => setShowLoginForm(true)}
+              sx={{ mt: 2, ml: 2 }}
+            >
+              Login
+            </Button>
+          </>
+        )}
+        {(showRegisterForm || showLoginForm) && (
+          <Button
+            variant="text"
+            onClick={() => {
+              setShowRegisterForm(false);
+              setShowLoginForm(false);
+            }}
+            sx={{ mt: 2 }}
+          >
+            Back
+          </Button>
+        )}
+      </Box>
+    );
+  }
 
   if (!currentProject) {
     return (
@@ -229,13 +375,6 @@ function App() {
         <Paper sx={{ p: 3, mt: 3, maxWidth: 400, width: "100%" }}>
           <CreateProjectForm onCreateProject={handleCreateProject} />
         </Paper>
-        <Button
-          variant="contained"
-          onClick={() => setShowRegisterForm(true)}
-          sx={{ mt: 2 }}
-        >
-          Register New User
-        </Button>
       </Box>
     );
   }
@@ -279,9 +418,15 @@ function App() {
         <Button
           variant="contained"
           onClick={() => setShowRegisterForm(true)}
-          sx={{ ml: "auto" }}
+          sx={{ ml: "auto", mr: 2 }}
         >
           Register
+        </Button>
+        <Button
+          variant="contained"
+          onClick={() => setShowLoginForm(true)}
+        >
+          Login
         </Button>
       </Box>
 
