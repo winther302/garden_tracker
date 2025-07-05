@@ -1,0 +1,32 @@
+services:
+  db:
+    image: mysql:8.0
+    container_name: garden_tracker_mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: garden_tracker_db
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password
+    ports:
+      - "3306:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot_password"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: ./server
+    container_name: garden_tracker_backend
+    ports:
+      - "3001:3001"
+    environment:
+      DATABASE_URL: mysql://user:password@db:3306/garden_tracker_db
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  db_data:
