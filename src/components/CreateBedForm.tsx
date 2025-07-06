@@ -1,27 +1,25 @@
 import React, { useState } from 'react';
-import { Person } from '../types';
-import { Button, TextField, Select, MenuItem, FormControl, InputLabel, Typography } from '@mui/material';
+import { UserProject, User } from '../types';
+import { Button, TextField, Select, MenuItem, FormControl, InputLabel } from '@mui/material';
 
 interface CreateBedFormProps {
-  people: Person[];
-  onCreateBed: (name: string, assignedTo?: Person) => void;
+  projectUsers: UserProject[];
+  onCreateBed: (name: string, assignedToId?: number) => void;
 }
 
-const CreateBedForm: React.FC<CreateBedFormProps> = ({ people, onCreateBed }) => {
+const CreateBedForm: React.FC<CreateBedFormProps> = ({ projectUsers, onCreateBed }) => {
   const [name, setName] = useState('');
   const [assignedToId, setAssignedToId] = useState<number | ''>('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const assignedTo = people.find(p => p.id === assignedToId);
-    onCreateBed(name, assignedTo);
+    onCreateBed(name, assignedToId === '' ? undefined : Number(assignedToId));
     setName('');
     setAssignedToId('');
   };
 
   return (
     <form onSubmit={handleSubmit}>
-      <Typography variant="h6" gutterBottom>Create New Bed</Typography>
       <TextField
         label="Bed Name"
         value={name}
@@ -37,14 +35,14 @@ const CreateBedForm: React.FC<CreateBedFormProps> = ({ people, onCreateBed }) =>
           onChange={e => setAssignedToId(e.target.value as number | '')}
         >
           <MenuItem value=""><em>Unassigned</em></MenuItem>
-          {people.map(person => (
-            <MenuItem key={person.id} value={person.id}>
-              {person.name}
+          {projectUsers.map(userProject => (
+            <MenuItem key={userProject.userId} value={userProject.userId}>
+              {userProject.user?.email || `User ${userProject.userId}`}
             </MenuItem>
           ))}
         </Select>
       </FormControl>
-      <Button type="submit" variant="contained" color="primary">
+      <Button type="submit" variant="contained" disableElevation color="primary">
         Create Bed
       </Button>
     </form>

@@ -4,17 +4,10 @@ const prisma = new PrismaClient();
 
 async function main() {
   console.log('Starting seeding...');
-  // Create People
-  const alice = await prisma.person.upsert({
-    where: { name: 'Alice' },
-    update: {},
-    create: { name: 'Alice' },
-  });
-  const bob = await prisma.person.upsert({
-    where: { name: 'Bob' },
-    update: {},
-    create: { name: 'Bob' },
-  });
+
+  // Assuming user IDs 1 and 2 exist for demonstration
+  const userIdAlice = 1; 
+  const userIdBob = 2; 
 
   // Create Projects
   const homeGarden = await prisma.project.upsert({
@@ -22,6 +15,7 @@ async function main() {
     update: {},
     create: {
       name: 'Home Garden',
+      users: { create: { userId: userIdAlice, role: 'ADMIN' } }, // Assign admin to project creator
       tasks: {
         create: [
           { name: 'Watering', frequency: 'daily' },
@@ -39,6 +33,7 @@ async function main() {
     update: {},
     create: {
       name: 'Community Garden',
+      users: { create: { userId: userIdBob, role: 'ADMIN' } }, // Assign admin to project creator
       tasks: {
         create: [
           { name: 'Pruning', frequency: 'weekly' },
@@ -55,7 +50,7 @@ async function main() {
     update: {},
     create: {
       name: 'Strawberry Patch',
-      assignedToId: alice.id,
+      assignedToUserId: userIdAlice,
       projectId: homeGarden.id,
       tasks: { connect: [{ id: homeGarden.tasks[0].id }, { id: homeGarden.tasks[1].id }] },
     },
@@ -66,7 +61,7 @@ async function main() {
     update: {},
     create: {
       name: 'Herb Garden',
-      assignedToId: bob.id,
+      assignedToUserId: userIdBob,
       projectId: homeGarden.id,
       tasks: { connect: [{ id: homeGarden.tasks[0].id }, { id: homeGarden.tasks[2].id }] },
     },
@@ -78,7 +73,7 @@ async function main() {
     update: {},
     create: {
       name: 'Tomato Bed',
-      assignedToId: alice.id,
+      assignedToUserId: userIdAlice,
       projectId: communityGarden.id,
       tasks: { connect: [{ id: communityGarden.tasks[0].id }] },
     },

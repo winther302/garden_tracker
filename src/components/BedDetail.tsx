@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Bed, Task } from '../types';
+import { Bed, Task, User } from '../types';
 import { Button, Card, CardContent, Typography, List, ListItem, ListItemText, Divider, Accordion, AccordionSummary, AccordionDetails, Snackbar, Autocomplete, TextField, Theme } from '@mui/material';
 import { SxProps } from '@mui/system';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
@@ -22,7 +22,7 @@ interface BedDetailProps {
 }
 
 const BedDetail: React.FC<BedDetailProps> = ({ bed, onTaskDone, onAssignTask, allTasks, sx }) => {
-  const sortedCompletedTasks = [...bed.completedTasks].map(task => ({
+  const sortedCompletedTasks = [...(bed.completedTasks ?? [])].map(task => ({
     ...task,
     completedAt: new Date(task.completedAt)
   })).sort((a, b) => b.completedAt.getTime() - a.completedAt.getTime());
@@ -48,7 +48,7 @@ const BedDetail: React.FC<BedDetailProps> = ({ bed, onTaskDone, onAssignTask, al
     setOpenSnackbar(false);
   };
 
-  const sortedAssignedTasks = [...bed.tasks].sort((a, b) => {
+  const sortedAssignedTasks = [...(bed.tasks ?? [])].sort((a, b) => {
     const dateA = calculateNextDueDate(a, bed.completedTasks);
     const dateB = calculateNextDueDate(b, bed.completedTasks);
 
@@ -75,7 +75,7 @@ const BedDetail: React.FC<BedDetailProps> = ({ bed, onTaskDone, onAssignTask, al
       <CardContent sx={{ p: 1 }}>
         <Typography variant="h5">{bed.name}</Typography>
         <Typography color="textSecondary">
-          Assigned to: {bed.assignedTo?.name || 'Unassigned'}
+          Assigned to: {bed.assignedTo?.email || 'Unassigned'}
         </Typography>
         <Accordion defaultExpanded disableGutters>
           <AccordionSummary
@@ -117,7 +117,7 @@ const BedDetail: React.FC<BedDetailProps> = ({ bed, onTaskDone, onAssignTask, al
                       primary={task.name}
                       secondary={nextDueDate ? `Due: ${nextDueDate.toLocaleDateString()}` : 'No due date'}
                     />
-                    <Button variant="contained" size="small" onClick={() => handleTaskDoneClick(task)}>
+                    <Button variant="contained" disableElevation size="small" onClick={() => handleTaskDoneClick(task)}>
                       Done
                     </Button>
                   </ListItem>
@@ -150,6 +150,7 @@ const BedDetail: React.FC<BedDetailProps> = ({ bed, onTaskDone, onAssignTask, al
             />
             <Button
               variant="contained"
+              disableElevation
               color="primary"
               onClick={handleAssignTaskClick}
               disabled={!taskToAssign}

@@ -29,6 +29,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess }) => {
         setMessage({ type: 'success', text: data.message });
         // In a real application, you would store a token here (e.g., localStorage)
         // and redirect the user.
+        console.log('Login successful. Received token:', data.token);
         localStorage.setItem('token', data.token);
         setEmail('');
         setPassword('');
@@ -82,7 +83,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess }) => {
         required
         fullWidth
       />
-      <Button type="submit" variant="contained" color="primary" fullWidth>
+      <Button type="submit" variant="contained" disableElevation color="primary" fullWidth>
         Login
       </Button>
     </Box>

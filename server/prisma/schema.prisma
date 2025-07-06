@@ -18,13 +18,14 @@ model Project {
   name      String   @unique
   beds      Bed[]
   tasks     Task[]
+  users     UserProject[]
 }
 
 model Bed {
   id            Int      @id @default(autoincrement())
   name          String
-  assignedToId  Int?
-  assignedTo    Person?  @relation(fields: [assignedToId], references: [id])
+  assignedToUserId  Int?
+  assignedTo    User?    @relation(fields: [assignedToUserId], references: [id])
   projectId     Int
   project       Project  @relation(fields: [projectId], references: [id])
   completedTasks CompletedTask[]
@@ -42,11 +43,7 @@ model Task {
   completedTasks CompletedTask[]
 }
 
-model Person {
-  id    Int     @id @default(autoincrement())
-  name  String  @unique
-  beds  Bed[]
-}
+
 
 model CompletedTask {
   id          Int      @id @default(autoincrement())
@@ -61,4 +58,16 @@ model User {
   id           Int      @id @default(autoincrement())
   email        String   @unique
   passwordHash String
+  projects     UserProject[]
+  beds         Bed[]
+}
+
+model UserProject {
+  userId    Int
+  projectId Int
+  role      String  @default("MEMBER") // e.g., ADMIN, MEMBER
+  user      User    @relation(fields: [userId], references: [id])
+  project   Project @relation(fields: [projectId], references: [id])
+
+  @@id([userId, projectId])
 }

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Button, TextField, FormControl, InputLabel, Select, MenuItem, Typography } from '@mui/material';
+import { Button, TextField, FormControl, InputLabel, Select, MenuItem } from '@mui/material';
 
 interface CreateTaskFormProps {
   onCreateTask: (name: string, dueDate?: Date, frequency?: string) => void;
@@ -21,7 +21,6 @@ const CreateTaskForm: React.FC<CreateTaskFormProps> = ({ onCreateTask }) => {
 
   return (
     <form onSubmit={handleSubmit}>
-      <Typography variant="h6" gutterBottom>Create New Task</Typography>
       <TextField
         label="Task Name"
         value={name}
@@ -54,7 +53,7 @@ const CreateTaskForm: React.FC<CreateTaskFormProps> = ({ onCreateTask }) => {
           <MenuItem value="weekly">Weekly</MenuItem>
         </Select>
       </FormControl>
-      <Button type="submit" variant="contained" color="primary" sx={{ mt: 2 }}>
+      <Button type="submit" variant="contained" disableElevation color="primary" sx={{ mt: 2 }}>
         Create Task
       </Button>
     </form>

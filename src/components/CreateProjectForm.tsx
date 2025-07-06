@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Button, TextField, Typography } from '@mui/material';
+import { Button, TextField } from '@mui/material';
 
 interface CreateProjectFormProps {
   onCreateProject: (name: string) => void;
@@ -18,7 +18,6 @@ const CreateProjectForm: React.FC<CreateProjectFormProps> = ({ onCreateProject }
 
   return (
     <form onSubmit={handleSubmit}>
-      <Typography variant="h6" gutterBottom>Create New Project</Typography>
       <TextField
         label="Project Name"
         value={projectName}
@@ -27,7 +26,7 @@ const CreateProjectForm: React.FC<CreateProjectFormProps> = ({ onCreateProject }
         fullWidth
         margin="normal"
       />
-      <Button type="submit" variant="contained" color="primary" sx={{ mt: 2 }}>
+      <Button type="submit" variant="contained" disableElevation color="primary" sx={{ mt: 2 }}>
         Create Project
       </Button>
     </form>

@@ -5,9 +5,11 @@
   "scripts": {
     "build": "tsc && tsc --project tsconfig.seed.json",
     "build:seed": "tsc --project tsconfig.seed.json",
-    "start": "node dist/index.js",
+    "start": "cross-env DATABASE_URL=\"mysql://user:password@localhost:3306/garden_tracker_db\" SHADOW_DATABASE_URL=\"mysql://root:root_password@localhost:3306/garden_tracker_shadow_db\" node dist/index.js",
     "prisma:seed": "ts-node prisma/seed.ts",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "migrate:dev": "cross-env DATABASE_URL=\"mysql://user:password@localhost:3306/garden_tracker_db\" SHADOW_DATABASE_URL=\"mysql://root:root_password@localhost:3306/garden_tracker_shadow_db\" prisma migrate dev",
+    "migrate:reset": "prisma migrate reset"
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"
@@ -23,14 +25,16 @@
     "@types/node": "^24.0.10",
     "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
+    "cross-env": "^7.0.3",
+    "dotenv-cli": "^8.0.0",
     "express": "^4.21.2",
     "jsonwebtoken": "^9.0.2",
     "mysql2": "^3.14.1",
-    "prisma": "^6.11.1",
     "ts-node": "^10.9.2",
     "typescript": "^5.8.3"
   },
   "devDependencies": {
-    "@types/jsonwebtoken": "^9.0.10"
+    "@types/jsonwebtoken": "^9.0.10",
+    "prisma": "^6.11.1"
   }
 }

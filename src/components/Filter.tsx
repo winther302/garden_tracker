@@ -1,14 +1,15 @@
 
 import React from 'react';
-import { Person } from '../types';
-import { TextField, Select, MenuItem, FormControl, InputLabel, Grid } from '@mui/material';
+import { User } from '../types';
+import { TextField, Select, MenuItem, FormControl, InputLabel, Grid, Button } from '@mui/material';
 
 interface FilterProps {
-  people: Person[];
+  people: User[];
   nameFilter: string;
   onNameFilterChange: (value: string) => void;
   assignedToFilter: number | '';
   onAssignedToFilterChange: (value: number | '') => void;
+  onClearFilters: () => void;
 }
 
 const Filter: React.FC<FilterProps> = ({
@@ -17,10 +18,11 @@ const Filter: React.FC<FilterProps> = ({
   onNameFilterChange,
   assignedToFilter,
   onAssignedToFilterChange,
+  onClearFilters,
 }) => {
   return (
-    <Grid container spacing={2} sx={{ mb: 2 }}>
-      <Grid item xs={6}>
+    <Grid container spacing={2} sx={{ mb: 2 }} alignItems="center">
+      <Grid item xs={5}>
         <TextField
           label="Filter by name"
           value={nameFilter}
@@ -28,7 +30,7 @@ const Filter: React.FC<FilterProps> = ({
           fullWidth
         />
       </Grid>
-      <Grid item xs={6}>
+      <Grid item xs={5}>
         <FormControl fullWidth>
           <InputLabel>Filter by assigned person</InputLabel>
           <Select
@@ -38,11 +40,16 @@ const Filter: React.FC<FilterProps> = ({
             <MenuItem value=""><em>All</em></MenuItem>
             {people.map(person => (
               <MenuItem key={person.id} value={person.id}>
-                {person.name}
+                {person.email}
               </MenuItem>
             ))}
           </Select>
         </FormControl>
+      </Grid>
+      <Grid item xs={2}>
+        <Button onClick={onClearFilters} variant="contained" disableElevation fullWidth sx={{ py: 1.9 }}>
+          Clear
+        </Button>
       </Grid>
     </Grid>
   );

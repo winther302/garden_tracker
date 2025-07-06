@@ -48,6 +48,24 @@ CREATE TABLE `CompletedTask` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
+CREATE TABLE `User` (
+    `id` INTEGER NOT NULL AUTO_INCREMENT,
+    `email` VARCHAR(191) NOT NULL,
+    `passwordHash` VARCHAR(191) NOT NULL,
+
+    UNIQUE INDEX `User_email_key`(`email`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `UserProject` (
+    `userId` INTEGER NOT NULL,
+    `projectId` INTEGER NOT NULL,
+
+    PRIMARY KEY (`userId`, `projectId`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
 CREATE TABLE `_BedTasks` (
     `A` INTEGER NOT NULL,
     `B` INTEGER NOT NULL,
@@ -70,6 +88,12 @@ ALTER TABLE `CompletedTask` ADD CONSTRAINT `CompletedTask_taskId_fkey` FOREIGN K
 
 -- AddForeignKey
 ALTER TABLE `CompletedTask` ADD CONSTRAINT `CompletedTask_bedId_fkey` FOREIGN KEY (`bedId`) REFERENCES `Bed`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `UserProject` ADD CONSTRAINT `UserProject_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `UserProject` ADD CONSTRAINT `UserProject_projectId_fkey` FOREIGN KEY (`projectId`) REFERENCES `Project`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `_BedTasks` ADD CONSTRAINT `_BedTasks_A_fkey` FOREIGN KEY (`A`) REFERENCES `Bed`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;

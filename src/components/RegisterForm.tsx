@@ -89,7 +89,7 @@ const RegisterForm: React.FC = () => {
         required
         fullWidth
       />
-      <Button type="submit" variant="contained" color="primary" fullWidth>
+      <Button type="submit" variant="contained" disableElevation color="primary" fullWidth>
         Register
       </Button>
     </Box>
